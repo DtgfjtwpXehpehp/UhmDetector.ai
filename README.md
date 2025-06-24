@@ -45,7 +45,7 @@ UhmDetector.ai is a comprehensive communication improvement platform that combin
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/uhmdetector-ai.git
+   git clone https://github.com/DtgfjtwsXehpehp/uhmdetector-ai.git
    cd uhmdetector-ai
    ```
 
@@ -279,4 +279,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Ready to transform your communication skills? [Get started now!](https://uhmdetector.ai)*
+*Ready to transform your communication skills? [Get started now!]([https://uhmdetector.ai](https://uhm-detector-ai.vercel.app/))*
