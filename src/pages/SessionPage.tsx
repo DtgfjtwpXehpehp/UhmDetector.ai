@@ -1,29 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Save, XCircle, Zap } from 'lucide-react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Save, XCircle, Zap, AlertTriangle } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSessionStore } from '../store/useSessionStore';
 import { useAchievementStore } from '../store/useAchievementStore';
 import { useSpeechAnalytics } from '../hooks/useSpeechAnalytics';
+import { practiceModes } from '../data/practiceModes';
 import MicrophoneButton from '../components/session/MicrophoneButton';
 import TranscriptDisplay from '../components/session/TranscriptDisplay';
 import FillerWordCounter from '../components/session/FillerWordCounter';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import BackButton from '../components/ui/BackButton';
-import Badge from '../components/ui/Badge';
 import AISuggestions from '../components/session/AISuggestions';
 import AnalyticsPanel from '../components/session/AnalyticsPanel';
+import MicrophonePermissionModal from '../components/session/MicrophonePermissionModal';
+import SessionCompletedModal from '../components/session/SessionCompletedModal';
+import TestimonialModal from '../components/testimonials/TestimonialModal';
 import { generateSuggestions } from '../utils/aiSuggestions';
+import { Suggestion } from '../types';
 
 const SessionPage = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const practiceMode = searchParams.get('mode');
   const navigate = useNavigate();
+  
   const [sessionTitle, setSessionTitle] = useState('');
-  const [showBadges, setShowBadges] = useState(false);
-  const [earnedBadges, setEarnedBadges] = useState<any[]>([]);
+  const [showCompletedModal, setShowCompletedModal] = useState(false);
+  const [showTestimonialModal, setShowTestimonialModal] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [isGeneratingRemix, setIsGeneratingRemix] = useState(false);
   const [remixText, setRemixText] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [practicePrompt, setPracticePrompt] = useState('');
   
   const { 
     sessions,
@@ -45,9 +54,11 @@ const SessionPage = () => {
     transcript, 
     results, 
     error, 
+    permissionStatus,
     startListening, 
     stopListening,
-    isSupported
+    isSupported,
+    checkPermission
   } = useSpeechRecognition();
   
   const { checkForNewAchievements } = useAchievementStore();
@@ -58,14 +69,42 @@ const SessionPage = () => {
   const isViewingSession = !!id;
   const sessionData = id ? getSessionById(id) : null;
   
+  // Get practice mode data if applicable
+  const selectedPracticeMode = practiceMode ? practiceModes.find(m => m.id === practiceMode) : null;
+  
   // Check for browser support
   const browserNotSupported = !isSupported;
   
   // Calculate real-time clarity score
   const clarityScore = calculateClarityScore(fillerWordCount, transcription.length);
   
+  // Handle permission modal
+  useEffect(() => {
+    if (permissionStatus === 'denied' && !isViewingSession) {
+      setShowPermissionModal(true);
+    } else {
+      setShowPermissionModal(false);
+    }
+  }, [permissionStatus, isViewingSession]);
+  
+  // Set practice prompt if in practice mode
+  useEffect(() => {
+    if (selectedPracticeMode && !practicePrompt) {
+      const randomPrompt = selectedPracticeMode.prompts[Math.floor(Math.random() * selectedPracticeMode.prompts.length)];
+      setPracticePrompt(randomPrompt);
+    }
+  }, [selectedPracticeMode, practicePrompt]);
+  
   // Start a new session
-  const handleStartSession = () => {
+  const handleStartSession = async () => {
+    if (permissionStatus !== 'granted') {
+      const hasPermission = await checkPermission();
+      if (!hasPermission) {
+        setShowPermissionModal(true);
+        return;
+      }
+    }
+    
     startSession();
     startListening();
     setSessionTitle('');
@@ -79,32 +118,26 @@ const SessionPage = () => {
   
   // Save the session
   const handleSaveSession = () => {
-    saveSession(sessionTitle || undefined);
+    const finalTitle = sessionTitle || (selectedPracticeMode ? `${selectedPracticeMode.name} Practice` : undefined);
+    saveSession(finalTitle);
     
     // Check for achievements
     const newBadges = checkForNewAchievements(
-      sessions.length + 1, // Include current session
+      sessions.length + 1,
       clarityScore,
-      0 // Placeholder for filler reduction percentage
+      0
     );
     
-    if (newBadges.length > 0) {
-      setEarnedBadges(newBadges);
-      setShowBadges(true);
-    } else {
-      navigate('/dashboard');
-    }
+    setShowCompletedModal(true);
   };
   
   // Generate a remix of just the filler words
   const generateFillerWordRemix = () => {
     setIsGeneratingRemix(true);
     
-    // Extract all the filler words from the transcript
     const fillerWordsRegex = /\b(um|uhm|uh|like|so|you know|actually|basically)\b/gi;
     const fillerWordsMatches = transcription.match(fillerWordsRegex) || [];
     
-    // Create a "remix" by joining the filler words
     setTimeout(() => {
       if (fillerWordsMatches.length > 0) {
         const remix = fillerWordsMatches.join(' ');
@@ -130,7 +163,7 @@ const SessionPage = () => {
       );
       setSuggestions(newSuggestions);
     }
-  }, [results, isRecording, updateTranscription]);
+  }, [results, isRecording, updateTranscription, fillerWordCount]);
   
   // Initialize data if viewing an existing session
   useEffect(() => {
@@ -165,9 +198,16 @@ const SessionPage = () => {
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <BackButton to="/dashboard" />
-          <h1 className="text-2xl font-bold text-slate-900">
-            {isRecording ? 'Recording in progress...' : 'Start a new session'}
-          </h1>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">
+              {isRecording ? 'Recording in progress...' : 
+               selectedPracticeMode ? `${selectedPracticeMode.name} Practice` : 
+               'Start a new session'}
+            </h1>
+            {selectedPracticeMode && (
+              <p className="text-slate-600 text-sm">{selectedPracticeMode.description}</p>
+            )}
+          </div>
         </div>
         
         {isRecording && (
@@ -178,12 +218,23 @@ const SessionPage = () => {
         )}
       </div>
       
+      {/* Error Display */}
+      {error && (
+        <div className="mb-6 bg-error-50 border border-error-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-error-500 mr-2" />
+            <p className="text-error-700">{error}</p>
+          </div>
+        </div>
+      )}
+      
       {isViewingSession ? (
         // View mode for existing session
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex justify-between mb-4">
               <div>
+                <h2 className="text-xl font-semibold text-slate-900 mb-2">{sessionData?.title}</h2>
                 <p className="text-sm text-slate-500">
                   {new Date(sessionData?.date || '').toLocaleString()}
                 </p>
@@ -216,23 +267,36 @@ const SessionPage = () => {
       ) : (
         // Recording mode for new session
         <div className="space-y-6">
+          {/* Practice Mode Prompt */}
+          {selectedPracticeMode && practicePrompt && (
+            <div className="bg-primary-50 border border-primary-200 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-primary-900 mb-2">Practice Prompt</h3>
+              <p className="text-primary-800 mb-4">"{practicePrompt}"</p>
+              <div className="text-sm text-primary-700">
+                <p><strong>Goals:</strong></p>
+                <ul className="list-disc list-inside mt-1">
+                  {selectedPracticeMode.goals.map((goal, index) => (
+                    <li key={index}>{goal}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          
           {/* Microphone control and status */}
           <div className="flex flex-col items-center justify-center py-6">
             <MicrophoneButton 
               isRecording={isRecording}
+              isLoading={permissionStatus === 'checking'}
               onClick={isRecording ? handleStopSession : handleStartSession}
               size="lg"
             />
             
             <p className="mt-4 text-slate-600">
-              {isRecording 
-                ? 'Click to stop recording' 
-                : 'Click to start recording'}
+              {permissionStatus === 'checking' ? 'Checking microphone permissions...' :
+               permissionStatus === 'denied' ? 'Microphone access required' :
+               isRecording ? 'Click to stop recording' : 'Click to start recording'}
             </p>
-            
-            {error && (
-              <p className="mt-2 text-error-600 text-sm">{error}</p>
-            )}
           </div>
           
           {/* Live clarity score */}
@@ -299,7 +363,7 @@ const SessionPage = () => {
                   type="text"
                   id="session-title"
                   className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  placeholder="Enter a title for your session"
+                  placeholder={selectedPracticeMode ? `${selectedPracticeMode.name} Practice` : "Enter a title for your session"}
                   value={sessionTitle}
                   onChange={(e) => setSessionTitle(e.target.value)}
                 />
@@ -343,39 +407,37 @@ const SessionPage = () => {
         </div>
       )}
       
-      {/* Achievement popup */}
-      {showBadges && (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-8 max-w-md w-full mx-4 animate-slide-up">
-            <div className="text-center mb-6">
-              <div className="text-5xl mb-4">🏆</div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Achievements Unlocked!</h2>
-              <p className="text-slate-600">Congratulations! You've earned new badges:</p>
-            </div>
-            
-            <div className="space-y-4 mb-6">
-              {earnedBadges.map(badge => (
-                <div key={badge.id} className="flex items-center p-4 bg-primary-50 rounded-lg">
-                  <div className="text-4xl mr-4">{badge.icon}</div>
-                  <div>
-                    <h3 className="font-bold text-slate-900">{badge.name}</h3>
-                    <p className="text-sm text-slate-600">{badge.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <button
-              onClick={() => {
-                setShowBadges(false);
-                navigate('/dashboard');
-              }}
-              className="btn btn-primary w-full"
-            >
-              Continue to Dashboard
-            </button>
-          </div>
-        </div>
+      {/* Microphone Permission Modal */}
+      <MicrophonePermissionModal
+        isOpen={showPermissionModal}
+        onClose={() => setShowPermissionModal(false)}
+        onRetry={checkPermission}
+        error={error || undefined}
+      />
+      
+      {/* Session Completed Modal */}
+      {showCompletedModal && (
+        <SessionCompletedModal
+          clarityScore={clarityScore}
+          onClose={() => {
+            setShowCompletedModal(false);
+            navigate('/dashboard');
+          }}
+          onLeaveTestimonial={() => {
+            setShowCompletedModal(false);
+            setShowTestimonialModal(true);
+          }}
+        />
+      )}
+      
+      {/* Testimonial Modal */}
+      {showTestimonialModal && (
+        <TestimonialModal
+          onClose={() => {
+            setShowTestimonialModal(false);
+            navigate('/dashboard');
+          }}
+        />
       )}
     </div>
   );

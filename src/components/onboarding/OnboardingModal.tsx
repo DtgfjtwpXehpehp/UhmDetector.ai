@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, BarChart2, Dumbbell, Trophy, X } from 'lucide-react';
+import { Mic, BarChart2, Dumbbell, Trophy, Keyboard, X } from 'lucide-react';
 
 interface OnboardingStep {
   title: string;
@@ -15,8 +15,15 @@ const steps: OnboardingStep[] = [
     title: 'Welcome to UhmDetector.ai',
     description: 'Start improving your speaking clarity with real-time feedback and AI-powered suggestions.',
     icon: <Mic className="h-8 w-8 text-primary-600" />,
-    action: 'Start Session',
+    action: 'Start Speech Session',
     route: '/session'
+  },
+  {
+    title: 'Improve Your Typing',
+    description: 'Practice typing with various modes and track your words per minute and accuracy.',
+    icon: <Keyboard className="h-8 w-8 text-primary-600" />,
+    action: 'Try Typing Test',
+    route: '/typing'
   },
   {
     title: 'Practice Makes Perfect',
@@ -34,7 +41,7 @@ const steps: OnboardingStep[] = [
   },
   {
     title: 'Compete and Achieve',
-    description: 'Join the leaderboard, earn badges, and challenge yourself to become a better speaker.',
+    description: 'Join the leaderboard, earn badges, and challenge yourself to become a better communicator.',
     icon: <Trophy className="h-8 w-8 text-primary-600" />,
     action: 'View Leaderboard',
     route: '/leaderboard'

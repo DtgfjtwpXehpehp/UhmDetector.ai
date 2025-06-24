@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mic, Menu, X, User, BarChart3, Trophy, LogOut, BarChart2 } from 'lucide-react';
+import { Mic, Menu, X, User, BarChart3, Trophy, LogOut, BarChart2, Keyboard } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const Navbar = () => {
@@ -28,7 +28,7 @@ const Navbar = () => {
           <div className="hidden md:flex md:items-center md:space-x-4">
             {isAuthenticated ? (
               <>
-                <Link to="/dashboard\" className="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">
+                <Link to="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">
                   Dashboard
                 </Link>
                 <Link to="/session" className="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">
@@ -36,6 +36,9 @@ const Navbar = () => {
                 </Link>
                 <Link to="/practice" className="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">
                   Practice
+                </Link>
+                <Link to="/typing" className="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">
+                  Typing
                 </Link>
                 <Link to="/analytics" className="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">
                   Analytics
@@ -108,6 +111,13 @@ const Navbar = () => {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <Mic className="h-5 w-5 mr-2" /> New Session
+                </Link>
+                <Link
+                  to="/typing"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-100 flex items-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Keyboard className="h-5 w-5 mr-2" /> Typing
                 </Link>
                 <Link
                   to="/analytics"

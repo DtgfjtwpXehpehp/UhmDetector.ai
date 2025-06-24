@@ -112,3 +112,57 @@ export interface SpeechAnalytics {
   tone: 'positive' | 'neutral' | 'negative';
   pace: 'slow' | 'normal' | 'fast';
 }
+
+// Typing-related interfaces
+export interface TypingTest {
+  id: string;
+  userId: string;
+  text: string;
+  mode: TypingMode;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  duration: number; // in seconds
+  wpm: number;
+  accuracy: number;
+  errors: number;
+  date: Date;
+  completedText: string;
+  mistakes: TypingMistake[];
+}
+
+export interface TypingMistake {
+  position: number;
+  expected: string;
+  typed: string;
+  timestamp: number;
+}
+
+export interface TypingMode {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  textType: 'words' | 'sentences' | 'paragraphs' | 'code' | 'numbers';
+  timeLimit?: number; // in seconds
+  wordCount?: number;
+}
+
+export interface TypingStats {
+  totalTests: number;
+  averageWpm: number;
+  averageAccuracy: number;
+  bestWpm: number;
+  bestAccuracy: number;
+  totalTimeTyped: number; // in seconds
+  improvementRate: number; // percentage
+  commonMistakes: { [key: string]: number };
+}
+
+export interface TypingLeaderboard {
+  userId: string;
+  userName: string;
+  avatarUrl?: string;
+  bestWpm: number;
+  averageWpm: number;
+  testsCompleted: number;
+  accuracy: number;
+}
