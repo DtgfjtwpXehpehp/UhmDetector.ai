@@ -13,7 +13,7 @@ interface SessionState {
   startSession: () => void;
   stopSession: () => void;
   saveSession: (title?: string) => void;
-  updateTranscription: (text: string, fillerWords: { word: string, index: number }[]) => void;
+  updateTranscription: (text: string, fillerWords: { word: string, index: number }[]) => FillerWordCount;
   getSessionById: (id: string) => Session | undefined;
   calculateClarityScore: (fillerCount: FillerWordCount, transcriptLength: number) => number;
 }
@@ -109,6 +109,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       highlightedTranscription: highlightedText,
       fillerWordCount
     });
+    
+    // Return the newly calculated fillerWordCount
+    return fillerWordCount;
   },
   
   getSessionById: (id) => {

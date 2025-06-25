@@ -161,17 +161,17 @@ const SessionPage = () => {
   useEffect(() => {
     if (results.length > 0 && isRecording) {
       const lastResult = results[results.length - 1];
-      updateTranscription(lastResult.transcript, lastResult.fillerWords);
+      const currentFillerWordCount = updateTranscription(lastResult.transcript, lastResult.fillerWords);
       
-      // Generate new suggestions
+      // Generate new suggestions using the current filler word count
       const newSuggestions = generateSuggestions(
         lastResult.transcript,
-        fillerWordCount,
+        currentFillerWordCount,
         lastResult.fillerWords
       );
       setSuggestions(newSuggestions);
     }
-  }, [results, isRecording, updateTranscription, fillerWordCount]);
+  }, [results, isRecording, updateTranscription]);
   
   // Initialize data if viewing an existing session
   useEffect(() => {
