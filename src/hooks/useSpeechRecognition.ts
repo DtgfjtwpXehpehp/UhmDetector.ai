@@ -124,8 +124,8 @@ export function useSpeechRecognition() {
         // Store the last error type
         lastErrorRef.current = event.error;
         
-        // Don't log 'aborted' errors as they are normal when stopping recognition
-        if (event.error !== 'aborted') {
+        // Only log errors that are not expected/normal behavior
+        if (event.error !== 'aborted' && event.error !== 'no-speech') {
           console.error('Speech recognition error:', event.error);
         }
         
