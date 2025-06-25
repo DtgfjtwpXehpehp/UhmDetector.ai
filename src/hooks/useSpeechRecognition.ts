@@ -13,6 +13,7 @@ export function useSpeechRecognition() {
   const [results, setResults] = useState<SpeechRecognitionResult[]>([]);
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intentionalStopRef = useRef<boolean>(false);
+  const lastErrorRef = useRef<string | null>(null);
 
   // Check if browser supports Speech Recognition
   const browserSupportsSpeechRecognition = () => {
@@ -68,6 +69,7 @@ export function useSpeechRecognition() {
     try {
       setError(null);
       intentionalStopRef.current = false;
+      lastErrorRef.current = null;
       
       // Create SpeechRecognition instance
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -119,6 +121,9 @@ export function useSpeechRecognition() {
       };
       
       recognitionRef.current.onerror = (event) => {
+        // Store the last error type
+        lastErrorRef.current = event.error;
+        
         // Don't log 'aborted' errors as they are normal when stopping recognition
         if (event.error !== 'aborted') {
           console.error('Speech recognition error:', event.error);
@@ -130,7 +135,8 @@ export function useSpeechRecognition() {
             setError(null);
             break;
           case 'no-speech':
-            setError('No speech detected. Please try speaking louder or check your microphone.');
+            // Don't show error for no-speech - this is common and will auto-restart
+            setError(null);
             break;
           case 'audio-capture':
             setError('Microphone not accessible. Please check your microphone connection.');
@@ -157,20 +163,37 @@ export function useSpeechRecognition() {
         
         // Only attempt to restart if we should still be listening and it wasn't intentionally stopped
         if (!intentionalStopRef.current) {
+          // Determine restart delay based on the last error
+          let restartDelay = 100; // Default delay
+          
+          // Check if we should prevent automatic restart for critical errors
+          const criticalErrors = ['audio-capture', 'not-allowed', 'service-not-allowed'];
+          if (lastErrorRef.current && criticalErrors.includes(lastErrorRef.current)) {
+            // Don't auto-restart for critical errors that require user intervention
+            return;
+          }
+          
+          // Use longer delay for no-speech errors to prevent rapid cycling
+          if (lastErrorRef.current === 'no-speech') {
+            restartDelay = 1000; // 1 second delay for no-speech errors
+          } else if (lastErrorRef.current === 'network') {
+            restartDelay = 2000; // 2 second delay for network errors
+          }
+          
           restartTimeoutRef.current = setTimeout(() => {
             // Check if we still have a recognition instance and it's in the right state
             if (recognitionRef.current && !intentionalStopRef.current) {
               try {
+                // Clear the last error before restarting
+                lastErrorRef.current = null;
                 // Only start if the recognition is not already running
-                // SpeechRecognition doesn't have a reliable readyState property in all browsers
-                // So we'll track the state ourselves and use a try-catch as backup
                 recognitionRef.current.start();
               } catch (err) {
                 // If start fails (likely because it's already running), just ignore it
                 console.warn('Could not restart recognition:', err);
               }
             }
-          }, 100);
+          }, restartDelay);
         }
       };
       
