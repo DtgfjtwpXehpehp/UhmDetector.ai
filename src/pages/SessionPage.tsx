@@ -80,11 +80,12 @@ const SessionPage = () => {
   
   // Synchronize recording state with speech recognition state
   useEffect(() => {
-    if (isRecording && !isListening && !isViewingSession) {
-      // If we're supposed to be recording but speech recognition stopped, stop the session
+    if (isRecording && !isListening && !isViewingSession && !error) {
+      // If we're supposed to be recording but speech recognition stopped unexpectedly, stop the session
+      console.log('Speech recognition stopped unexpectedly, stopping session');
       stopSession();
     }
-  }, [isRecording, isListening, isViewingSession, stopSession]);
+  }, [isRecording, isListening, isViewingSession, stopSession, error]);
   
   // Handle permission modal
   useEffect(() => {
@@ -113,15 +114,17 @@ const SessionPage = () => {
       }
     }
     
+    console.log('Starting new session...');
     startSession();
-    startListening();
+    await startListening();
     setSessionTitle('');
   };
   
   // Stop the current session
   const handleStopSession = () => {
-    stopSession();
+    console.log('Stopping session...');
     stopListening();
+    stopSession();
   };
   
   // Save the session
@@ -160,6 +163,7 @@ const SessionPage = () => {
   // Update transcription when speech recognition results change
   useEffect(() => {
     if (transcript && isRecording) {
+      console.log('Updating transcription with:', transcript);
       // Use the latest transcript directly from speech recognition
       const fillerWords = results.length > 0 ? results[results.length - 1].fillerWords : [];
       const currentFillerWordCount = updateTranscription(transcript, fillerWords);
@@ -237,6 +241,21 @@ const SessionPage = () => {
         </div>
       )}
       
+      {/* Debug Info (only in development) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mb-6 bg-slate-100 border border-slate-300 rounded-lg p-4 text-sm">
+          <h3 className="font-medium text-slate-800 mb-2">Debug Info:</h3>
+          <div className="space-y-1 text-slate-600">
+            <p>Permission Status: {permissionStatus}</p>
+            <p>Is Listening: {isListening ? 'Yes' : 'No'}</p>
+            <p>Is Recording: {isRecording ? 'Yes' : 'No'}</p>
+            <p>Transcript Length: {transcript.length}</p>
+            <p>Results Count: {results.length}</p>
+            <p>Error: {error || 'None'}</p>
+          </div>
+        </div>
+      )}
+      
       {isViewingSession ? (
         // View mode for existing session
         <div className="space-y-6">
@@ -306,6 +325,19 @@ const SessionPage = () => {
                permissionStatus === 'denied' ? 'Microphone access required' :
                isRecording ? 'Click to stop recording' : 'Click to start recording'}
             </p>
+            
+            {/* Status indicators */}
+            {isRecording && (
+              <div className="mt-2 flex items-center space-x-4 text-sm">
+                <div className={`flex items-center ${isListening ? 'text-success-600' : 'text-warning-600'}`}>
+                  <div className={`h-2 w-2 rounded-full mr-1 ${isListening ? 'bg-success-500' : 'bg-warning-500'}`}></div>
+                  {isListening ? 'Listening' : 'Not listening'}
+                </div>
+                <div className="text-slate-500">
+                  Words: {transcript.split(' ').filter(w => w.length > 0).length}
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Live clarity score */}
