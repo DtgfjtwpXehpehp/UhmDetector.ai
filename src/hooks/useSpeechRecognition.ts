@@ -12,6 +12,7 @@ export function useSpeechRecognition() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [results, setResults] = useState<SpeechRecognitionResult[]>([]);
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intentionalStopRef = useRef<boolean>(false);
 
   // Check if browser supports Speech Recognition
   const browserSupportsSpeechRecognition = () => {
@@ -66,6 +67,7 @@ export function useSpeechRecognition() {
 
     try {
       setError(null);
+      intentionalStopRef.current = false;
       
       // Create SpeechRecognition instance
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -120,6 +122,15 @@ export function useSpeechRecognition() {
         console.error('Speech recognition error:', event.error);
         
         switch (event.error) {
+          case 'aborted':
+            // If this was an intentional stop, don't show an error
+            if (intentionalStopRef.current) {
+              setError(null);
+              intentionalStopRef.current = false;
+            } else {
+              setError('Speech recognition was interrupted. Please try again.');
+            }
+            break;
           case 'no-speech':
             setError('No speech detected. Please try speaking louder or check your microphone.');
             break;
@@ -144,10 +155,10 @@ export function useSpeechRecognition() {
       };
       
       recognitionRef.current.onend = () => {
-        if (isListening) {
-          // Auto-restart if we're still supposed to be listening
+        if (isListening && !intentionalStopRef.current) {
+          // Auto-restart if we're still supposed to be listening and it wasn't intentionally stopped
           restartTimeoutRef.current = setTimeout(() => {
-            if (recognitionRef.current && isListening) {
+            if (recognitionRef.current && isListening && !intentionalStopRef.current) {
               try {
                 recognitionRef.current.start();
               } catch (err) {
@@ -173,6 +184,8 @@ export function useSpeechRecognition() {
 
   // Stop listening
   const stopListening = useCallback(() => {
+    intentionalStopRef.current = true;
+    
     if (restartTimeoutRef.current) {
       clearTimeout(restartTimeoutRef.current);
       restartTimeoutRef.current = null;
@@ -197,6 +210,7 @@ export function useSpeechRecognition() {
   // Clean up on unmount
   useEffect(() => {
     return () => {
+      intentionalStopRef.current = true;
       if (restartTimeoutRef.current) {
         clearTimeout(restartTimeoutRef.current);
       }
