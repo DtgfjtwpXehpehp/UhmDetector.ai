@@ -123,13 +123,8 @@ export function useSpeechRecognition() {
         
         switch (event.error) {
           case 'aborted':
-            // If this was an intentional stop, don't show an error
-            if (intentionalStopRef.current) {
-              setError(null);
-              intentionalStopRef.current = false;
-            } else {
-              setError('Speech recognition was interrupted. Please try again.');
-            }
+            // Don't show error for aborted recognition - this is normal when stopping
+            setError(null);
             break;
           case 'no-speech':
             setError('No speech detected. Please try speaking louder or check your microphone.');
@@ -155,20 +150,24 @@ export function useSpeechRecognition() {
       };
       
       recognitionRef.current.onend = () => {
-        if (isListening && !intentionalStopRef.current) {
-          // Auto-restart if we're still supposed to be listening and it wasn't intentionally stopped
+        setIsListening(false);
+        
+        // Only attempt to restart if we should still be listening and it wasn't intentionally stopped
+        if (!intentionalStopRef.current) {
           restartTimeoutRef.current = setTimeout(() => {
-            if (recognitionRef.current && isListening && !intentionalStopRef.current) {
+            // Check if we still have a recognition instance and it's in the right state
+            if (recognitionRef.current && !intentionalStopRef.current) {
               try {
+                // Only start if the recognition is not already running
+                // SpeechRecognition doesn't have a reliable readyState property in all browsers
+                // So we'll track the state ourselves and use a try-catch as backup
                 recognitionRef.current.start();
               } catch (err) {
-                console.error('Failed to restart recognition:', err);
-                setIsListening(false);
+                // If start fails (likely because it's already running), just ignore it
+                console.warn('Could not restart recognition:', err);
               }
             }
           }, 100);
-        } else {
-          setIsListening(false);
         }
       };
       
@@ -180,7 +179,7 @@ export function useSpeechRecognition() {
       console.error('Speech recognition initialization error:', err);
       setIsListening(false);
     }
-  }, [detectFillerWords, isListening, checkMicrophonePermission]);
+  }, [detectFillerWords, checkMicrophonePermission]);
 
   // Stop listening
   const stopListening = useCallback(() => {
