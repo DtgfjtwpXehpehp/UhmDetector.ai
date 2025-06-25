@@ -78,6 +78,14 @@ const SessionPage = () => {
   // Calculate real-time clarity score
   const clarityScore = calculateClarityScore(fillerWordCount, transcription.length);
   
+  // Synchronize recording state with speech recognition state
+  useEffect(() => {
+    if (isRecording && !isListening && !isViewingSession) {
+      // If we're supposed to be recording but speech recognition stopped, stop the session
+      stopSession();
+    }
+  }, [isRecording, isListening, isViewingSession, stopSession]);
+  
   // Handle permission modal
   useEffect(() => {
     if (permissionStatus === 'denied' && !isViewingSession) {
