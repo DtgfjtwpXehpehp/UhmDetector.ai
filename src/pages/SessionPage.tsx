@@ -159,19 +159,20 @@ const SessionPage = () => {
   
   // Update transcription when speech recognition results change
   useEffect(() => {
-    if (results.length > 0 && isRecording) {
-      const lastResult = results[results.length - 1];
-      const currentFillerWordCount = updateTranscription(lastResult.transcript, lastResult.fillerWords);
+    if (transcript && isRecording) {
+      // Use the latest transcript directly from speech recognition
+      const fillerWords = results.length > 0 ? results[results.length - 1].fillerWords : [];
+      const currentFillerWordCount = updateTranscription(transcript, fillerWords);
       
       // Generate new suggestions using the current filler word count
       const newSuggestions = generateSuggestions(
-        lastResult.transcript,
+        transcript,
         currentFillerWordCount,
-        lastResult.fillerWords
+        fillerWords
       );
       setSuggestions(newSuggestions);
     }
-  }, [results, isRecording, updateTranscription]);
+  }, [transcript, isRecording, updateTranscription, results]);
   
   // Initialize data if viewing an existing session
   useEffect(() => {
