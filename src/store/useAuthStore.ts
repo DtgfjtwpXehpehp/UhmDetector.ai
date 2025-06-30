@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { User } from '../types';
+import { sendOTPEmail, sendPasswordResetConfirmationEmail, initializeEmailJS } from '../utils/emailService';
 
 interface AuthState {
   user: User | null;
@@ -39,8 +40,7 @@ const saveUserToDatabase = (user: User, password: string) => {
     password: btoa(password), // Simple base64 encoding for demo (use proper hashing in production)
     sessions: [],
     typingTests: [],
-    achievements: [],
-    testimonials: []
+    achievements: []
   };
   saveUserDatabase(db);
 };
@@ -58,33 +58,6 @@ const getUserData = (userId: string) => {
   return db[userId] || null;
 };
 
-// Email service simulation
-const sendEmail = async (to: string, subject: string, content: string) => {
-  // Simulate email sending delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  // In a real app, you would use a service like SendGrid, Nodemailer, or EmailJS
-  console.log(`📧 Email sent to ${to}:`);
-  console.log(`Subject: ${subject}`);
-  console.log(`Content: ${content}`);
-  
-  // For demo purposes, we'll show the OTP in console
-  if (subject.includes('Password Reset')) {
-    const otpMatch = content.match(/(\d{6})/);
-    if (otpMatch) {
-      console.log(`🔑 OTP for demo: ${otpMatch[1]}`);
-      // Show alert in demo environment
-      if (process.env.NODE_ENV === 'development') {
-        setTimeout(() => {
-          alert(`Demo OTP: ${otpMatch[1]}\n\nIn production, this would be sent to your email.`);
-        }, 500);
-      }
-    }
-  }
-  
-  return true;
-};
-
 const generateOTP = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
@@ -95,6 +68,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
 
   initializeAuth: () => {
+    // Initialize EmailJS
+    initializeEmailJS();
+    
     const storedUserId = localStorage.getItem('currentUserId');
     if (storedUserId) {
       const userData = getUserData(storedUserId);
@@ -304,16 +280,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       };
       localStorage.setItem('passwordResetOTP', JSON.stringify(otpData));
       
-      // Send email with OTP
-      const emailContent = `
-        Your UhmDetector.ai password reset code is: ${otp}
-        
-        This code will expire in 10 minutes.
-        
-        If you didn't request this password reset, please ignore this email.
-      `;
-      
-      await sendEmail(email, 'Password Reset Code - UhmDetector.ai', emailContent);
+      // Send email with OTP using EmailJS
+      await sendOTPEmail(email, otp, userData.name);
       
       set({ isLoading: false });
     } catch (error) {
@@ -385,15 +353,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.removeItem('passwordResetOTP');
       
       // Send confirmation email
-      const confirmationContent = `
-        Your UhmDetector.ai password has been successfully reset.
-        
-        If you didn't make this change, please contact our support team immediately.
-        
-        For security, please log in with your new password.
-      `;
-      
-      await sendEmail(email, 'Password Reset Successful - UhmDetector.ai', confirmationContent);
+      await sendPasswordResetConfirmationEmail(email, userData?.name);
       
       set({ isLoading: false });
     } catch (error) {
