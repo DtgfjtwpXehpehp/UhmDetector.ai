@@ -1,5 +1,4 @@
 import emailjs from 'emailjs-com';
-import { generateOTPEmail, generatePasswordResetConfirmationEmail } from './emailTemplates';
 
 // EmailJS configuration - Updated with your actual credentials
 const EMAILJS_SERVICE_ID = 'service_ymgxdep';
@@ -11,20 +10,14 @@ export const initializeEmailJS = () => {
   emailjs.init(EMAILJS_USER_ID);
 };
 
-interface EmailTemplate {
-  subject: string;
-  html: string;
-  text: string;
-}
-
 // Send OTP email using EmailJS
 export const sendOTPEmail = async (to: string, otp: string, userName?: string): Promise<boolean> => {
   try {
-    // EmailJS template parameters matching your template
+    // EmailJS template parameters for OTP email
     const templateParams = {
       email: to, // Matches {{email}} in your template
       subject: 'Password Reset Code - UhmDetector.ai',
-      otp_code: otp, // Matches {{otp_code}} in your template
+      otp_code: otp, // This will show the actual 6-digit OTP
       from_name: 'UhmDetector.ai',
       reply_to: 'noreply@uhmdetector.ai'
     };
@@ -37,10 +30,10 @@ export const sendOTPEmail = async (to: string, otp: string, userName?: string): 
       EMAILJS_USER_ID
     );
 
-    console.log('✅ Email sent successfully:', response);
+    console.log('✅ OTP email sent successfully:', response);
     return true;
   } catch (error) {
-    console.error('❌ Failed to send email:', error);
+    console.error('❌ Failed to send OTP email:', error);
     
     // Fallback for demo purposes - show OTP in console/alert
     console.log(`📧 Demo OTP for ${to}: ${otp}`);
@@ -57,19 +50,19 @@ export const sendOTPEmail = async (to: string, otp: string, userName?: string): 
 // Send password reset confirmation email
 export const sendPasswordResetConfirmationEmail = async (to: string, userName?: string): Promise<boolean> => {
   try {
-    // Use the same template but with different parameters for confirmation
+    // For confirmation emails, we'll send a different message
     const templateParams = {
       email: to, // Matches {{email}} in your template
       subject: 'Password Reset Successful - UhmDetector.ai',
-      otp_code: '✅ SUCCESS', // Use the otp_code field to show success message
+      // Don't include otp_code for confirmation emails, or set it to empty
+      // The template should handle the case where otp_code is not provided
       from_name: 'UhmDetector.ai',
       reply_to: 'noreply@uhmdetector.ai'
     };
 
-    // Use the same existing template ID instead of a non-existent one
     const response = await emailjs.send(
       EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID, // Use the existing template instead of 'template_password_confirmation'
+      EMAILJS_TEMPLATE_ID,
       templateParams,
       EMAILJS_USER_ID
     );
@@ -83,7 +76,7 @@ export const sendPasswordResetConfirmationEmail = async (to: string, userName?: 
 };
 
 // Simulate email sending for demo purposes
-export const sendEmail = async (to: string, template: EmailTemplate): Promise<boolean> => {
+export const sendEmail = async (to: string, template: { subject: string; html: string; text: string }): Promise<boolean> => {
   // Try to send real email first
   try {
     const templateParams = {
@@ -142,13 +135,11 @@ Subject: {{subject}}
 Hi {{email}},
 
 {{#if otp_code}}
-{{#if (eq otp_code "✅ SUCCESS")}}
-Your password has been successfully reset! You can now log in with your new password.
-{{else}}
 Your UhmDetector.ai verification code is: {{otp_code}}
 
 This code will expire in 10 minutes.
-{{/if}}
+{{else}}
+Your password has been successfully reset! You can now log in with your new password.
 {{/if}}
 
 If you didn't request this password reset, please ignore this email.

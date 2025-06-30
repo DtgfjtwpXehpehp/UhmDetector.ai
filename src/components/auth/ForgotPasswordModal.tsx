@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Send, ArrowLeft, Mail, Key, CheckCircle } from 'lucide-react';
+import { X, Send, ArrowLeft, Mail, Key, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface ForgotPasswordModalProps {
@@ -16,6 +16,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isResending, setIsResending] = useState(false);
+  const [lastOTPRequest, setLastOTPRequest] = useState<number>(0);
   const { requestPasswordReset, verifyOTP, resetPasswordWithOTP, isLoading } = useAuthStore();
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -23,7 +24,9 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
     setError('');
 
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(email.trim());
+      setLastOTPRequest(Date.now());
+      setOtp(''); // Clear any previous OTP input
       setStep('otp');
     } catch (err: any) {
       setError(err.message || 'Failed to send OTP');
@@ -34,15 +37,18 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
     e.preventDefault();
     setError('');
 
-    if (otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
+    const cleanOTP = otp.trim().replace(/\s/g, ''); // Remove all whitespace
+    
+    if (cleanOTP.length !== 6 || !/^\d{6}$/.test(cleanOTP)) {
+      setError('Please enter a valid 6-digit OTP (numbers only)');
       return;
     }
 
     try {
-      await verifyOTP(email, otp);
+      await verifyOTP(email.trim(), cleanOTP);
       setStep('password');
     } catch (err: any) {
+      console.error('OTP verification error:', err);
       setError(err.message || 'Invalid OTP');
     }
   };
@@ -62,7 +68,8 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
     }
 
     try {
-      await resetPasswordWithOTP(email, otp, newPassword);
+      const cleanOTP = otp.trim().replace(/\s/g, '');
+      await resetPasswordWithOTP(email.trim(), cleanOTP, newPassword);
       setStep('success');
     } catch (err: any) {
       setError(err.message || 'Failed to reset password');
@@ -74,17 +81,24 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
     setError('');
     
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(email.trim());
+      setLastOTPRequest(Date.now());
+      setOtp(''); // Clear the OTP input when resending
       setError(''); // Clear any previous errors
       // Show success message briefly
-      const originalError = error;
-      setError('OTP resent successfully!');
-      setTimeout(() => setError(''), 3000);
+      setError('New OTP sent successfully! Please check your email for the latest code.');
+      setTimeout(() => setError(''), 4000);
     } catch (err: any) {
       setError(err.message || 'Failed to resend OTP');
     } finally {
       setIsResending(false);
     }
+  };
+
+  const handleOTPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow digits and limit to 6 characters
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setOtp(value);
   };
 
   const renderEmailStep = () => (
@@ -162,12 +176,17 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
 
       <form onSubmit={handleOTPSubmit} className="space-y-6">
         {error && (
-          <div className={`px-4 py-3 rounded-lg text-sm ${
+          <div className={`px-4 py-3 rounded-lg text-sm flex items-start gap-2 ${
             error.includes('successfully') 
               ? 'bg-success-50 border border-success-200 text-success-700'
               : 'bg-error-50 border border-error-200 text-error-700'
           }`}>
-            {error}
+            {error.includes('successfully') ? (
+              <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            )}
+            <span>{error}</span>
           </div>
         )}
 
@@ -179,13 +198,16 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
             type="text"
             id="otp"
             value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onChange={handleOTPChange}
             className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-center text-2xl font-mono tracking-widest"
             placeholder="000000"
             maxLength={6}
+            pattern="[0-9]{6}"
+            inputMode="numeric"
+            autoComplete="one-time-code"
             required
           />
-          <p className="text-xs text-slate-500 mt-1">Enter the 6-digit code from your email</p>
+          <p className="text-xs text-slate-500 mt-1">Enter the 6-digit code from your email (numbers only)</p>
         </div>
 
         <div className="text-center">
@@ -196,8 +218,13 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
             disabled={isResending}
             className="text-primary-600 hover:text-primary-700 text-sm font-medium"
           >
-            {isResending ? 'Resending...' : 'Resend Code'}
+            {isResending ? 'Sending new code...' : 'Send New Code'}
           </button>
+          {lastOTPRequest > 0 && (
+            <p className="text-xs text-slate-500 mt-1">
+              Make sure to use the most recent code from your email
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">

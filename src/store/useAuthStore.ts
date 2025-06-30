@@ -270,15 +270,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Generate OTP
       const otp = generateOTP();
+      const timestamp = Date.now();
       
-      // Store OTP with expiration (10 minutes)
+      // Store OTP with expiration (10 minutes) and timestamp for uniqueness
       const otpData = {
-        email,
-        otp,
+        email: email.toLowerCase().trim(), // Normalize email
+        otp: otp.trim(), // Ensure no whitespace
         expires: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes
-        verified: false
+        verified: false,
+        timestamp: timestamp, // Add timestamp to track when OTP was generated
+        requestId: `${email.toLowerCase().trim()}_${timestamp}` // Unique request ID
       };
       localStorage.setItem('passwordResetOTP', JSON.stringify(otpData));
+      
+      // Log OTP for debugging
+      console.log('🔑 Generated OTP:', otp, 'for email:', email, 'at timestamp:', timestamp);
       
       // Send email with OTP using EmailJS
       await sendOTPEmail(email, otp, userData.name);
@@ -299,8 +305,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       const otpData = JSON.parse(localStorage.getItem('passwordResetOTP') || '{}');
       
-      if (!otpData.otp || otpData.email !== email) {
-        throw new Error('Invalid request. Please start the password reset process again.');
+      // Normalize inputs for comparison
+      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedOTP = otp.trim();
+      const storedEmail = otpData.email?.toLowerCase().trim();
+      const storedOTP = otpData.otp?.trim();
+      
+      console.log('🔍 OTP Verification Debug:');
+      console.log('Input email:', normalizedEmail);
+      console.log('Stored email:', storedEmail);
+      console.log('Input OTP:', normalizedOTP);
+      console.log('Stored OTP:', storedOTP);
+      console.log('OTP timestamp:', otpData.timestamp);
+      console.log('Current time:', Date.now());
+      console.log('OTP Data:', otpData);
+      
+      if (!storedOTP || !storedEmail || !otpData.timestamp) {
+        throw new Error('No valid OTP request found. Please start the password reset process again.');
+      }
+      
+      if (storedEmail !== normalizedEmail) {
+        throw new Error('Email mismatch. Please start the password reset process again.');
       }
       
       if (new Date(otpData.expires) < new Date()) {
@@ -308,16 +333,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('OTP has expired. Please request a new one.');
       }
       
-      if (otpData.otp !== otp) {
-        throw new Error('Invalid OTP. Please check your email and try again.');
+      if (storedOTP !== normalizedOTP) {
+        // Provide more helpful error message
+        throw new Error(`Invalid OTP code. Please check your email for the most recent 6-digit code and try again.`);
       }
       
       // Mark OTP as verified
       otpData.verified = true;
       localStorage.setItem('passwordResetOTP', JSON.stringify(otpData));
       
+      console.log('✅ OTP verified successfully');
       set({ isLoading: false });
     } catch (error) {
+      console.error('❌ OTP verification failed:', error);
       set({ isLoading: false });
       throw error;
     }
@@ -332,8 +360,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       const otpData = JSON.parse(localStorage.getItem('passwordResetOTP') || '{}');
       
-      if (!otpData.verified || otpData.email !== email || otpData.otp !== otp) {
-        throw new Error('Invalid or unverified OTP. Please start the process again.');
+      // Normalize inputs
+      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedOTP = otp.trim();
+      const storedEmail = otpData.email?.toLowerCase().trim();
+      const storedOTP = otpData.otp?.trim();
+      
+      if (!otpData.verified || storedEmail !== normalizedEmail || storedOTP !== normalizedOTP) {
+        throw new Error('Invalid or unverified OTP. Please verify your OTP first.');
       }
       
       if (new Date(otpData.expires) < new Date()) {

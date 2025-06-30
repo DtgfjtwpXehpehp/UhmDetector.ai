@@ -15,14 +15,18 @@ const EmailJSSetupGuide: React.FC<EmailJSSetupGuideProps> = ({ onClose }) => {
   };
 
   const templateCode = `
-// OTP Email Template
+// OTP Email Template - Updated Version
 Subject: {{subject}}
 
 Hi {{email}},
 
+{{#if otp_code}}
 Your UhmDetector.ai verification code is: {{otp_code}}
 
 This code will expire in 10 minutes.
+{{else}}
+Your password has been successfully reset! You can now log in with your new password.
+{{/if}}
 
 If you didn't request this password reset, please ignore this email.
 
@@ -53,14 +57,14 @@ Your EmailJS is ready to send real emails!
         <div className="mb-6">
           <div className="flex items-center mb-4">
             <Mail className="h-8 w-8 text-success-600 mr-3" />
-            <h2 className="text-2xl font-bold text-slate-900">EmailJS Status</h2>
+            <h2 className="text-2xl font-bold text-slate-900">EmailJS Status & Fix</h2>
           </div>
-          <div className="bg-success-50 border border-success-200 rounded-lg p-4">
+          <div className="bg-warning-50 border border-warning-200 rounded-lg p-4">
             <div className="flex items-center">
-              <CheckCircle className="h-6 w-6 text-success-600 mr-3" />
+              <Settings className="h-6 w-6 text-warning-600 mr-3" />
               <div>
-                <h3 className="font-semibold text-success-900">EmailJS is Configured!</h3>
-                <p className="text-success-700">Your credentials are set up and ready to send real emails.</p>
+                <h3 className="font-semibold text-warning-900">Template Update Required</h3>
+                <p className="text-warning-700">Your template needs a small update to fix the OTP display issue.</p>
               </div>
             </div>
           </div>
@@ -87,14 +91,14 @@ Your EmailJS is ready to send real emails!
             </div>
           </div>
 
-          {/* Template Verification */}
-          <div className="border border-slate-200 rounded-lg p-6">
+          {/* Template Fix */}
+          <div className="border border-warning-200 rounded-lg p-6 bg-warning-50">
             <div className="flex items-center mb-4">
-              <Code className="h-6 w-6 text-primary-600 mr-3" />
-              <h3 className="text-lg font-semibold text-slate-900">Verify Your Template</h3>
+              <Code className="h-6 w-6 text-warning-600 mr-3" />
+              <h3 className="text-lg font-semibold text-warning-900">Fix Your Template</h3>
             </div>
-            <p className="text-slate-600 mb-4">
-              Make sure your EmailJS template matches this format exactly:
+            <p className="text-warning-700 mb-4">
+              Replace your current template with this updated version to fix the OTP issue:
             </p>
             <div className="bg-slate-900 rounded-lg p-4 relative">
               <button
@@ -108,12 +112,43 @@ Your EmailJS is ready to send real emails!
                 <code>{templateCode}</code>
               </pre>
             </div>
-            <div className="mt-4 bg-primary-50 border border-primary-200 rounded-lg p-4">
-              <h4 className="font-medium text-primary-900 mb-2">Required Variables:</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><code className="bg-primary-100 px-2 py-1 rounded">{"{{email}}"}</code> - Recipient email</div>
-                <div><code className="bg-primary-100 px-2 py-1 rounded">{"{{subject}}"}</code> - Email subject</div>
-                <div><code className="bg-primary-100 px-2 py-1 rounded">{"{{otp_code}}"}</code> - OTP code</div>
+            <div className="mt-4 bg-white border border-warning-300 rounded-lg p-4">
+              <h4 className="font-medium text-warning-900 mb-2">What Changed:</h4>
+              <ul className="text-sm text-warning-800 space-y-1">
+                <li>• Added conditional logic to show OTP only when present</li>
+                <li>• Separate message for password reset confirmation</li>
+                <li>• Fixed the "SUCCESS" text issue</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Step-by-step Instructions */}
+          <div className="border border-primary-200 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <Settings className="h-6 w-6 text-primary-600 mr-3" />
+              <h3 className="text-lg font-semibold text-slate-900">How to Update Your Template</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+                <h4 className="font-medium text-primary-900 mb-2">Step-by-Step Instructions:</h4>
+                <ol className="text-sm text-primary-800 space-y-2 list-decimal list-inside">
+                  <li>Go to your <a href="https://dashboard.emailjs.com/" target="_blank" rel="noopener noreferrer" className="underline font-medium">EmailJS Dashboard</a></li>
+                  <li>Navigate to "Email Templates"</li>
+                  <li>Find template ID: <code className="bg-primary-100 px-2 py-1 rounded">template_wrws1vf</code></li>
+                  <li>Click "Edit" on your template</li>
+                  <li>Replace the entire template content with the code above</li>
+                  <li>Click "Save" to update your template</li>
+                  <li>Test the password reset feature again</li>
+                </ol>
+              </div>
+              
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                <h4 className="font-medium text-slate-800 mb-2">Required Variables:</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><code className="bg-slate-100 px-2 py-1 rounded">{"{{email}}"}</code> - Recipient email</div>
+                  <div><code className="bg-slate-100 px-2 py-1 rounded">{"{{subject}}"}</code> - Email subject</div>
+                  <div><code className="bg-slate-100 px-2 py-1 rounded">{"{{otp_code}}"}</code> - OTP code (optional)</div>
+                </div>
               </div>
             </div>
           </div>
@@ -121,31 +156,23 @@ Your EmailJS is ready to send real emails!
           {/* Testing Instructions */}
           <div className="border border-slate-200 rounded-lg p-6">
             <div className="flex items-center mb-4">
-              <Settings className="h-6 w-6 text-warning-600 mr-3" />
-              <h3 className="text-lg font-semibold text-slate-900">Test Your Setup</h3>
+              <CheckCircle className="h-6 w-6 text-success-600 mr-3" />
+              <h3 className="text-lg font-semibold text-slate-900">Test Your Updated Template</h3>
             </div>
             <div className="space-y-4">
               <p className="text-slate-600">
-                Your EmailJS is configured and ready! Test the password reset functionality:
+                After updating your template, test the password reset functionality:
               </p>
-              <div className="bg-warning-50 border border-warning-200 rounded-lg p-4">
-                <h4 className="font-medium text-warning-900 mb-2">Testing Steps:</h4>
-                <ol className="text-sm text-warning-800 space-y-1 list-decimal list-inside">
+              <div className="bg-success-50 border border-success-200 rounded-lg p-4">
+                <h4 className="font-medium text-success-900 mb-2">Testing Steps:</h4>
+                <ol className="text-sm text-success-800 space-y-1 list-decimal list-inside">
                   <li>Go to the login page</li>
                   <li>Click "Forgot your password?"</li>
                   <li>Enter your email address</li>
-                  <li>Check your email for the OTP code</li>
+                  <li>Check your email for the 6-digit OTP code (not "SUCCESS")</li>
                   <li>Enter the code to reset your password</li>
+                  <li>You should receive a confirmation email</li>
                 </ol>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <h4 className="font-medium text-slate-800 mb-2">Troubleshooting:</h4>
-                <ul className="text-sm text-slate-600 space-y-1">
-                  <li>• Check spam/junk folders if emails don't arrive</li>
-                  <li>• Verify your EmailJS template has the correct variables</li>
-                  <li>• Ensure your email service is properly connected in EmailJS</li>
-                  <li>• Check the browser console for any error messages</li>
-                </ul>
               </div>
             </div>
           </div>
@@ -158,13 +185,13 @@ Your EmailJS is ready to send real emails!
             </div>
             <div className="space-y-3">
               <a
-                href="https://www.emailjs.com/docs/"
+                href="https://www.emailjs.com/docs/tutorial/creating-email-template/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                EmailJS Documentation
+                EmailJS Template Guide
               </a>
               <a
                 href="https://dashboard.emailjs.com/"
@@ -184,7 +211,7 @@ Your EmailJS is ready to send real emails!
             onClick={onClose}
             className="btn btn-primary"
           >
-            Perfect, let's test it!
+            Got it, I'll update the template!
           </button>
         </div>
       </div>
