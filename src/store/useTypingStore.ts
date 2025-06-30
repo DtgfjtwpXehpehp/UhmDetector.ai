@@ -21,10 +21,12 @@ interface TypingState {
   getStats: () => TypingStats;
   calculateWPM: () => number;
   calculateAccuracy: () => number;
+  loadUserTests: () => void;
+  saveUserTests: () => void;
 }
 
 export const useTypingStore = create<TypingState>((set, get) => ({
-  tests: JSON.parse(localStorage.getItem('typingTests') || '[]'),
+  tests: [],
   currentTest: null,
   isTyping: false,
   startTime: null,
@@ -34,6 +36,16 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   mistakes: [],
   wpm: 0,
   accuracy: 100,
+  
+  loadUserTests: () => {
+    const tests = JSON.parse(localStorage.getItem('typingTests') || '[]');
+    set({ tests });
+  },
+  
+  saveUserTests: () => {
+    const { tests } = get();
+    localStorage.setItem('typingTests', JSON.stringify(tests));
+  },
   
   startTest: (text, mode, difficulty) => {
     const newTest: TypingTest = {
@@ -96,7 +108,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   },
   
   finishTest: () => {
-    const { currentTest, typedText, mistakes, startTime } = get();
+    const { currentTest, typedText, mistakes, startTime, tests } = get();
     
     if (!currentTest || !startTime) return;
     
@@ -114,7 +126,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       mistakes
     };
     
-    const updatedTests = [...get().tests, completedTest];
+    const updatedTests = [...tests, completedTest];
     localStorage.setItem('typingTests', JSON.stringify(updatedTests));
     
     set({

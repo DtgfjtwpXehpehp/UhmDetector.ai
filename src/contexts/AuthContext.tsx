@@ -1,5 +1,8 @@
 import { createContext, ReactNode, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
+import { useSessionStore } from '../store/useSessionStore';
+import { useTypingStore } from '../store/useTypingStore';
+import { useAchievementStore } from '../store/useAchievementStore';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -31,25 +34,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isLoading, 
     login, 
     register, 
-    logout 
+    logout,
+    initializeAuth
   } = useAuthStore();
   
-  // Check for existing user in localStorage on mount
+  const { loadUserSessions } = useSessionStore();
+  const { loadUserTests } = useTypingStore();
+  const { loadUserAchievements } = useAchievementStore();
+  
+  // Initialize authentication and load user data on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        useAuthStore.setState({ 
-          user: parsedUser, 
-          isAuthenticated: true 
-        });
-      } catch (error) {
-        console.error('Failed to parse stored user', error);
-        localStorage.removeItem('user');
-      }
+    initializeAuth();
+  }, [initializeAuth]);
+  
+  // Load user data when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadUserSessions();
+      loadUserTests();
+      loadUserAchievements();
     }
-  }, []);
+  }, [isAuthenticated, user, loadUserSessions, loadUserTests, loadUserAchievements]);
   
   return (
     <AuthContext.Provider

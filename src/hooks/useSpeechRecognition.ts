@@ -107,6 +107,8 @@ export function useSpeechRecognition() {
         isStartingRef.current = false;
         // Reset transcript accumulation
         finalTranscriptRef.current = '';
+        setTranscript('');
+        setResults([]);
       };
       
       recognitionRef.current.onresult = (event) => {
@@ -119,7 +121,7 @@ export function useSpeechRecognition() {
           const resultTranscript = result[0].transcript;
           
           if (result.isFinal) {
-            finalTranscript += resultTranscript;
+            finalTranscript += resultTranscript + ' ';
           } else {
             interimTranscript += resultTranscript;
           }
@@ -165,7 +167,8 @@ export function useSpeechRecognition() {
             // Normal when stopping - don't show error
             break;
           case 'no-speech':
-            // Common and will auto-restart - don't show error
+            // Don't show error for no-speech, just continue listening
+            console.log('No speech detected, continuing to listen...');
             break;
           case 'audio-capture':
             setError('Microphone not accessible. Please check your microphone connection.');
@@ -196,7 +199,7 @@ export function useSpeechRecognition() {
         if (!intentionalStopRef.current && isListening) {
           // Add a small delay before restarting to prevent rapid cycling
           restartTimeoutRef.current = setTimeout(() => {
-            if (!intentionalStopRef.current && recognitionRef.current) {
+            if (!intentionalStopRef.current && recognitionRef.current && isListening) {
               try {
                 console.log('Restarting speech recognition...');
                 recognitionRef.current.start();

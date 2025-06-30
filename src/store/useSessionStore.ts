@@ -15,19 +15,31 @@ interface SessionState {
   saveSession: (title?: string) => void;
   updateTranscription: (text: string, fillerWords: { word: string, index: number }[]) => FillerWordCount;
   getSessionById: (id: string) => Session | undefined;
-  calculateClarityScore: (fillerCount: FillerWordCount, transcriptLength: number) => number;
+  calculateClarityScore: (fillerCount: FillerWordCount, transcriptLength: string) => number;
+  loadUserSessions: () => void;
+  saveUserSessions: () => void;
 }
 
-const FILLER_WORDS = ['uhm', 'like', 'so', 'you know'];
+const FILLER_WORDS = ['uhm', 'um', 'uh', 'like', 'so', 'you know'];
 
 // Create store with initial state and actions
 export const useSessionStore = create<SessionState>((set, get) => ({
-  sessions: JSON.parse(localStorage.getItem('sessions') || '[]'),
+  sessions: [],
   currentSession: null,
   isRecording: false,
   transcription: '',
   highlightedTranscription: '',
   fillerWordCount: { uhm: 0, like: 0, so: 0, youKnow: 0, total: 0 },
+  
+  loadUserSessions: () => {
+    const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+    set({ sessions });
+  },
+  
+  saveUserSessions: () => {
+    const { sessions } = get();
+    localStorage.setItem('sessions', JSON.stringify(sessions));
+  },
   
   startSession: () => {
     const newSession: Session = {
@@ -55,11 +67,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
   
   saveSession: (title) => {
-    const { currentSession, transcription, fillerWordCount } = get();
+    const { currentSession, transcription, fillerWordCount, sessions } = get();
     
     if (!currentSession) return;
     
-    const clarityScore = get().calculateClarityScore(fillerWordCount, transcription.length);
+    const clarityScore = get().calculateClarityScore(fillerWordCount, transcription);
     
     const finalSession: Session = {
       ...currentSession,
@@ -70,13 +82,16 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       duration: Math.floor((Date.now() - new Date(currentSession.date).getTime()) / 1000)
     };
     
-    const updatedSessions = [...get().sessions, finalSession];
+    const updatedSessions = [...sessions, finalSession];
     localStorage.setItem('sessions', JSON.stringify(updatedSessions));
     
     set({ 
       sessions: updatedSessions,
       currentSession: null,
-      isRecording: false
+      isRecording: false,
+      transcription: '',
+      highlightedTranscription: '',
+      fillerWordCount: { uhm: 0, like: 0, so: 0, youKnow: 0, total: 0 }
     });
   },
   
@@ -91,10 +106,16 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     };
     
     fillerWords.forEach(({ word }) => {
-      if (word.includes('uhm') || word.includes('um')) fillerWordCount.uhm++;
-      else if (word === 'like') fillerWordCount.like++;
-      else if (word === 'so') fillerWordCount.so++;
-      else if (word === 'you know') fillerWordCount.youKnow++;
+      const lowerWord = word.toLowerCase();
+      if (lowerWord.includes('uhm') || lowerWord.includes('um') || lowerWord === 'uh') {
+        fillerWordCount.uhm++;
+      } else if (lowerWord === 'like') {
+        fillerWordCount.like++;
+      } else if (lowerWord === 'so') {
+        fillerWordCount.so++;
+      } else if (lowerWord === 'you know') {
+        fillerWordCount.youKnow++;
+      }
     });
     
     // Create highlighted text
@@ -118,11 +139,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     return get().sessions.find(session => session.id === id);
   },
   
-  calculateClarityScore: (fillerCount, transcriptLength) => {
-    if (transcriptLength === 0) return 100;
+  calculateClarityScore: (fillerCount, transcriptText) => {
+    if (!transcriptText || transcriptText.length === 0) return 100;
     
     // Calculate ratio of filler words to total words
-    const totalWords = transcriptLength / 5; // Rough approximation of word count
+    const totalWords = Math.max(1, transcriptText.split(' ').filter(word => word.trim().length > 0).length);
     const fillerRatio = fillerCount.total / totalWords;
     
     // Convert to score (100 = perfect, 0 = terrible)

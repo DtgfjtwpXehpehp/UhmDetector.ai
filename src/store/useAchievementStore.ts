@@ -5,6 +5,8 @@ interface AchievementState {
   badges: Badge[];
   unlockedBadges: Badge[];
   checkForNewAchievements: (sessionCount: number, clarityScore: number, fillerReduction: number) => Badge[];
+  loadUserAchievements: () => void;
+  saveUserAchievements: () => void;
 }
 
 export const useAchievementStore = create<AchievementState>((set, get) => ({
@@ -42,6 +44,16 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
   ],
   
   unlockedBadges: [],
+  
+  loadUserAchievements: () => {
+    const achievements = JSON.parse(localStorage.getItem('achievements') || '[]');
+    set({ unlockedBadges: achievements });
+  },
+  
+  saveUserAchievements: () => {
+    const { unlockedBadges } = get();
+    localStorage.setItem('achievements', JSON.stringify(unlockedBadges));
+  },
   
   checkForNewAchievements: (sessionCount, clarityScore, fillerReduction) => {
     const { badges, unlockedBadges } = get();
@@ -85,9 +97,11 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
     
     // Add newly unlocked badges to state
     if (newUnlocks.length > 0) {
-      set(state => ({
-        unlockedBadges: [...state.unlockedBadges, ...newUnlocks]
-      }));
+      const updatedUnlocked = [...unlockedBadges, ...newUnlocks];
+      set({ unlockedBadges: updatedUnlocked });
+      
+      // Save to localStorage
+      localStorage.setItem('achievements', JSON.stringify(updatedUnlocked));
     }
     
     return newUnlocks;

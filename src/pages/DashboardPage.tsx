@@ -13,12 +13,21 @@ import OnboardingModal from '../components/onboarding/OnboardingModal';
 import Card from '../components/ui/Card';
 
 const DashboardPage = () => {
-  const { sessions } = useSessionStore();
-  const { tests, getStats } = useTypingStore();
+  const { sessions, loadUserSessions } = useSessionStore();
+  const { tests, getStats, loadUserTests } = useTypingStore();
   const { user } = useAuthStore();
-  const { badges, unlockedBadges } = useAchievementStore();
+  const { badges, unlockedBadges, loadUserAchievements } = useAchievementStore();
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  // Load user data on component mount
+  useEffect(() => {
+    if (user) {
+      loadUserSessions();
+      loadUserTests();
+      loadUserAchievements();
+    }
+  }, [user, loadUserSessions, loadUserTests, loadUserAchievements]);
   
   // Analytics stats
   const totalSessions = sessions.length;

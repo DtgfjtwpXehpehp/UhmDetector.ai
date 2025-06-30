@@ -45,7 +45,7 @@ UhmDetector.ai is a comprehensive communication improvement platform that combin
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/DtgfjtwsXehpehp/uhmdetector-ai.git
+   git clone https://github.com/DtgfjtwpXehpehp/uhmdetector-ai.git
    cd uhmdetector-ai
    ```
 
@@ -271,12 +271,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📈 Project Stats
 
-![GitHub stars](https://img.shields.io/github/stars/yourusername/uhmdetector-ai?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/uhmdetector-ai?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/uhmdetector-ai)
-![GitHub license](https://img.shields.io/github/license/yourusername/uhmdetector-ai)
-![Build status](https://img.shields.io/github/workflow/status/yourusername/uhmdetector-ai/CI)
+![GitHub stars](https://img.shields.io/github/stars/DtgfjtwpXehpehp/uhmdetector-ai?style=social)
+![GitHub forks](https://img.shields.io/github/forks/DtgfjtwpXehpehp/uhmdetector-ai?style=social)
+![GitHub issues](https://img.shields.io/github/issues/DtgfjtwpXehpehp/uhmdetector-ai)
+![GitHub license](https://img.shields.io/github/license/DtgfjtwpXehpehp/uhmdetector-ai)
+![Build status](https://img.shields.io/github/workflow/status/DtgfjtwpXehpehp/uhmdetector-ai/CI)
 
 ---
 
-*Ready to transform your communication skills? [Get started now!]([https://uhmdetector.ai](https://uhm-detector-ai.vercel.app/))*
+*Ready to transform your communication skills? [Get started now!](https://uhm-detector-ai.vercel.app/)*

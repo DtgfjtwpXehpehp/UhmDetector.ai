@@ -76,16 +76,7 @@ const SessionPage = () => {
   const browserNotSupported = !isSupported;
   
   // Calculate real-time clarity score
-  const clarityScore = calculateClarityScore(fillerWordCount, transcription.length);
-  
-  // Synchronize recording state with speech recognition state
-  useEffect(() => {
-    if (isRecording && !isListening && !isViewingSession && !error) {
-      // If we're supposed to be recording but speech recognition stopped unexpectedly, stop the session
-      console.log('Speech recognition stopped unexpectedly, stopping session');
-      stopSession();
-    }
-  }, [isRecording, isListening, isViewingSession, stopSession, error]);
+  const clarityScore = calculateClarityScore(fillerWordCount, transcription);
   
   // Handle permission modal
   useEffect(() => {
@@ -237,21 +228,6 @@ const SessionPage = () => {
           <div className="flex items-center">
             <AlertTriangle className="h-5 w-5 text-error-500 mr-2" />
             <p className="text-error-700">{error}</p>
-          </div>
-        </div>
-      )}
-      
-      {/* Debug Info (only in development) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mb-6 bg-slate-100 border border-slate-300 rounded-lg p-4 text-sm">
-          <h3 className="font-medium text-slate-800 mb-2">Debug Info:</h3>
-          <div className="space-y-1 text-slate-600">
-            <p>Permission Status: {permissionStatus}</p>
-            <p>Is Listening: {isListening ? 'Yes' : 'No'}</p>
-            <p>Is Recording: {isRecording ? 'Yes' : 'No'}</p>
-            <p>Transcript Length: {transcript.length}</p>
-            <p>Results Count: {results.length}</p>
-            <p>Error: {error || 'None'}</p>
           </div>
         </div>
       )}
